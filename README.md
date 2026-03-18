@@ -1,5 +1,10 @@
 # AI Job Application Agent
 
+[![CI](https://github.com/JaiEnfer/ai-job-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/JaiEnfer/ai-job-agent/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/JaiEnfer/ai-job-agent)](https://github.com/JaiEnfer/ai-job-agent/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![Stars](https://img.shields.io/github/stars/JaiEnfer/ai-job-agent?style=social)](https://github.com/JaiEnfer/ai-job-agent/stargazers)
+
 Germany-focused AI job application agent that can:
 
 - ingest jobs manually or from URLs
