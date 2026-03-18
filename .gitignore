@@ -4,3 +4,9 @@ __pycache__/
 .env
 .vscode/
 .idea/
+node_modules/
+dist/
+build/
+.coverage
+.pytest_cache/
+playwright-report/
