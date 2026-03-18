@@ -54,6 +54,11 @@ npm install
 npm run dev
 ```
 
+## Run with Docker
+```bash 
+docker compose -f docker-compose.full.yml up --build
+```
+
 ## Environment variables
 
 Create a .env file with:
@@ -70,4 +75,18 @@ GEMINI_MODEL=gemini-3-flash
 
 ## MVP Goal
 
-Build a full-stack AI job application agent for Germany that can go from job ingestion to application package generation and tracking.
+1. Create candidate profile
+
+2. Create or ingest a job
+
+3. Generate application package
+
+4. Save and view package
+
+5. Create application record
+
+6. Track application status
+
+## Goal 
+
+Build a full-stack AI job application agent for Germany that goes from job ingestion to application package generation and tracking.

@@ -8,6 +8,7 @@ import CreateProfile from "./pages/CreateProfile";
 import GeneratePackage from "./pages/GeneratePackage";
 import Applications from "./pages/Applications";
 import PackageDetail from "./pages/PackageDetail";
+import CreateApplication from "./pages/CreateApplication";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Link to="/generate-package">Generate Package</Link>
           <Link to="/packages">Packages</Link>
           <Link to="/applications">Applications</Link>
+          <Link to="/applications/create">Create Application</Link>
         </nav>
 
         <Routes>
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="/packages" element={<ApplicationPackages />} />
           <Route path="/packages/:id" element={<PackageDetail />} />
           <Route path="/applications" element={<Applications />} />
+          <Route path="/applications/create" element={<CreateApplication />} />
         </Routes>
       </div>
     </BrowserRouter>
