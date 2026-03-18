@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../services/api";
 
 export default function ApplicationPackages() {
@@ -31,7 +32,10 @@ export default function ApplicationPackages() {
         <ul>
           {packages.map((pkg) => (
             <li key={pkg.id}>
-              <strong>Package #{pkg.id}</strong> — Job {pkg.job_id} / Profile {pkg.profile_id} / Status: {pkg.status}
+              <Link to={`/packages/${pkg.id}`}>
+                Package #{pkg.id}
+              </Link>{" "}
+              — Job {pkg.job_id} / Profile {pkg.profile_id} / Status: {pkg.status}
             </li>
           ))}
         </ul>
