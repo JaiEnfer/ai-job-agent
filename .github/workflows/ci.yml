@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -6,8 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/ai-job-agent-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/ai-job-agent-frontend
+  DOCKER_TAG: ${{ github.sha }}
+
 jobs:
-  build:
+  lint:
+    name: Lint (Python + Frontend)
     runs-on: ubuntu-latest
 
     steps:
@@ -20,3 +26,64 @@ jobs:
 
       - name: Check Python syntax
         run: python -m compileall app
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Lint frontend
+        run: |
+          cd frontend
+          npm run lint
+
+  build:
+    name: Build & Push Docker images
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      packages: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:${{ env.DOCKER_TAG }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ env.DOCKER_TAG }}
