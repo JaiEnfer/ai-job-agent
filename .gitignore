@@ -10,3 +10,5 @@ build/
 .coverage
 .pytest_cache/
 playwright-report/
+
+AI_Job_Agent_Documentation.docx
