@@ -8,33 +8,33 @@ export default function Jobs() {
   useEffect(() => {
     api
       .get("/jobs")
-      .then((response) => {
-        setJobs(response.data);
-      })
-      .catch((error) => {
-        console.error("Failed to load jobs:", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then((response) => setJobs(response.data))
+      .catch((error) => console.error("Failed to load jobs:", error))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div>
-      <h1>Jobs</h1>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Jobs</h1>
+        <p className="page-subtitle">All stored roles from ingestion and manual entry.</p>
+      </div>
 
       {loading ? (
-        <p>Loading jobs...</p>
+        <div className="card">Loading jobs...</div>
       ) : jobs.length === 0 ? (
-        <p>No jobs found.</p>
+        <div className="card">No jobs found.</div>
       ) : (
-        <ul>
+        <div className="list">
           {jobs.map((job) => (
-            <li key={job.id}>
-              <strong>{job.title}</strong> — {job.company} ({job.location || "N/A"})
-            </li>
+            <div key={job.id} className="list-item">
+              <div className="list-item-title">{job.title}</div>
+              <div className="list-item-subtitle">
+                {job.company} · {job.location || "N/A"} · {job.source || "N/A"}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

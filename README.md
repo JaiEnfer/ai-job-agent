@@ -40,6 +40,17 @@ Germany-focused AI job application agent that can:
 - Application tracking
 - Site-aware scraping foundation
 
+## Screenshots
+
+### Dashboard
+![Dashboard](assets/dashboard.png)
+
+### Generate Package
+![Generate Package](assets/generate-package.png)
+
+### Applications
+![Applications](assets/applications.png)
+
 ## Run backend
 
 ```bash

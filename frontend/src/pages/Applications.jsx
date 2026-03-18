@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import StatusBadge from "../components/StatusBadge";
 
 const STATUS_OPTIONS = [
   "draft",
@@ -42,40 +43,40 @@ export default function Applications() {
   }
 
   return (
-    <div>
-      <h1>Applications</h1>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Applications</h1>
+        <p className="page-subtitle">Track live application workflow across statuses.</p>
+      </div>
 
       {loading ? (
-        <p>Loading applications...</p>
+        <div className="card">Loading applications...</div>
       ) : applications.length === 0 ? (
-        <p>No applications found.</p>
+        <div className="card">No applications found.</div>
       ) : (
-        <div style={{ display: "grid", gap: "16px" }}>
+        <div className="list">
           {applications.map((app) => (
-            <div
-              key={app.id}
-              style={{
-                border: "1px solid #ddd",
-                padding: "12px",
-                borderRadius: "8px",
-                background: "#fafafa",
-              }}
-            >
-              <p><strong>Application #{app.id}</strong></p>
-              <p>Job ID: {app.job_id}</p>
-              <p>Profile ID: {app.profile_id}</p>
-              <p>Package ID: {app.application_package_id || "N/A"}</p>
-              <p>Channel: {app.application_channel || "N/A"}</p>
-              <p>Recruiter: {app.recruiter_name || "N/A"}</p>
-              <p>Applied At: {app.applied_at || "N/A"}</p>
-              <p>Notes: {app.notes || "N/A"}</p>
+            <div key={app.id} className="list-item">
+              <div className="inline-actions" style={{ justifyContent: "space-between" }}>
+                <div>
+                  <div className="list-item-title">Application #{app.id}</div>
+                  <div className="list-item-subtitle">
+                    Job {app.job_id} · Profile {app.profile_id} · Package {app.application_package_id || "N/A"}
+                  </div>
+                </div>
+                <StatusBadge status={app.status} />
+              </div>
 
-              <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "10px" }}>
-                <strong>Status:</strong>
-                <select
-                  value={app.status}
-                  onChange={(e) => updateStatus(app.id, e.target.value)}
-                >
+              <div className="kv" style={{ marginTop: "12px" }}>
+                <div className="kv-row"><span className="kv-label">Channel:</span> {app.application_channel || "N/A"}</div>
+                <div className="kv-row"><span className="kv-label">Recruiter:</span> {app.recruiter_name || "N/A"}</div>
+                <div className="kv-row"><span className="kv-label">Applied At:</span> {app.applied_at || "N/A"}</div>
+                <div className="kv-row"><span className="kv-label">Notes:</span> {app.notes || "N/A"}</div>
+              </div>
+
+              <div className="inline-actions" style={{ marginTop: "12px" }}>
+                <span className="kv-label">Update Status:</span>
+                <select value={app.status} onChange={(e) => updateStatus(app.id, e.target.value)}>
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {status}

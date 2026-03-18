@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import StatCard from "../components/StatCard";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -15,37 +16,26 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Germany-focused AI job application workflow</p>
-
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "20px" }}>
-        <div style={{ border: "1px solid #ddd", padding: "16px", borderRadius: "8px", minWidth: "180px" }}>
-          <h3>Jobs</h3>
-          <p>{jobs.length}</p>
-        </div>
-
-        <div style={{ border: "1px solid #ddd", padding: "16px", borderRadius: "8px", minWidth: "180px" }}>
-          <h3>Profiles</h3>
-          <p>{profiles.length}</p>
-        </div>
-
-        <div style={{ border: "1px solid #ddd", padding: "16px", borderRadius: "8px", minWidth: "180px" }}>
-          <h3>Packages</h3>
-          <p>{packages.length}</p>
-        </div>
-
-        <div style={{ border: "1px solid #ddd", padding: "16px", borderRadius: "8px", minWidth: "180px" }}>
-          <h3>Applications</h3>
-          <p>{summary?.total_applications || 0}</p>
-        </div>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-subtitle">
+          Track jobs, packages, and applications in one place.
+        </p>
       </div>
 
-      <div style={{ marginTop: "24px" }}>
-        <h3>Status Breakdown</h3>
-        <pre style={{ background: "#f4f4f4", padding: "12px", borderRadius: "8px" }}>
+      <div className="grid grid-4">
+        <StatCard title="Jobs" value={jobs.length} />
+        <StatCard title="Profiles" value={profiles.length} />
+        <StatCard title="Packages" value={packages.length} />
+        <StatCard title="Applications" value={summary?.total_applications || 0} />
+      </div>
+
+      <div className="card">
+        <h2 className="section-title">Application Status Breakdown</h2>
+        <div className="pre-block">
           {JSON.stringify(summary?.status_breakdown || {}, null, 2)}
-        </pre>
+        </div>
       </div>
     </div>
   );

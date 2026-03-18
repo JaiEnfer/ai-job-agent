@@ -8,33 +8,33 @@ export default function Profiles() {
   useEffect(() => {
     api
       .get("/candidate-profiles")
-      .then((response) => {
-        setProfiles(response.data);
-      })
-      .catch((error) => {
-        console.error("Failed to load profiles:", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then((response) => setProfiles(response.data))
+      .catch((error) => console.error("Failed to load profiles:", error))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div>
-      <h1>Candidate Profiles</h1>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Candidate Profiles</h1>
+        <p className="page-subtitle">Reusable source profiles for tailored applications.</p>
+      </div>
 
       {loading ? (
-        <p>Loading profiles...</p>
+        <div className="card">Loading profiles...</div>
       ) : profiles.length === 0 ? (
-        <p>No profiles found.</p>
+        <div className="card">No profiles found.</div>
       ) : (
-        <ul>
+        <div className="list">
           {profiles.map((profile) => (
-            <li key={profile.id}>
-              <strong>{profile.full_name}</strong> — {profile.headline || "No headline"}
-            </li>
+            <div key={profile.id} className="list-item">
+              <div className="list-item-title">{profile.full_name}</div>
+              <div className="list-item-subtitle">
+                {profile.headline || "No headline"} · {profile.location || "N/A"}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

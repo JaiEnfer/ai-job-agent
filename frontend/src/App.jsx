@@ -1,4 +1,5 @@
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Jobs from "./pages/Jobs";
 import Profiles from "./pages/Profiles";
@@ -13,21 +14,7 @@ import CreateApplication from "./pages/CreateApplication";
 export default function App() {
   return (
     <BrowserRouter>
-      <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-        <h1>AI Job Application Agent</h1>
-
-        <nav style={{ marginBottom: "20px", display: "flex", gap: "15px", flexWrap: "wrap" }}>
-          <Link to="/">Dashboard</Link>
-          <Link to="/jobs">Jobs</Link>
-          <Link to="/jobs/create">Create Job</Link>
-          <Link to="/profiles">Profiles</Link>
-          <Link to="/profiles/create">Create Profile</Link>
-          <Link to="/generate-package">Generate Package</Link>
-          <Link to="/packages">Packages</Link>
-          <Link to="/applications">Applications</Link>
-          <Link to="/applications/create">Create Application</Link>
-        </nav>
-
+      <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/jobs" element={<Jobs />} />
@@ -40,7 +27,7 @@ export default function App() {
           <Route path="/applications" element={<Applications />} />
           <Route path="/applications/create" element={<CreateApplication />} />
         </Routes>
-      </div>
+      </Layout>
     </BrowserRouter>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import StatusBadge from "../components/StatusBadge";
 
 export default function GeneratePackage() {
   const [jobs, setJobs] = useState([]);
@@ -31,10 +32,13 @@ export default function GeneratePackage() {
   }
 
   return (
-    <div>
-      <h1>Generate Application Package</h1>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Generate Application Package</h1>
+        <p className="page-subtitle">Select a job and profile to build a tailored application package.</p>
+      </div>
 
-      <div style={{ display: "grid", gap: "10px", maxWidth: "600px" }}>
+      <div className="card form-grid">
         <select value={jobId} onChange={(e) => setJobId(e.target.value)}>
           <option value="">Select Job</option>
           {jobs.map((job) => (
@@ -56,20 +60,22 @@ export default function GeneratePackage() {
         <button onClick={handleGenerate} disabled={!jobId || !profileId || loading}>
           {loading ? "Generating..." : "Generate Package"}
         </button>
+
+        {error && <div className="message-error">{error}</div>}
       </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
       {result && (
-        <div style={{ marginTop: "20px" }}>
-          <h2>Package Generated</h2>
-          <p><strong>Package ID:</strong> {result.id}</p>
-          <p><strong>Status:</strong> {result.status}</p>
-          <p><strong>Job ID:</strong> {result.job_id}</p>
-          <p><strong>Profile ID:</strong> {result.profile_id}</p>
-          <pre style={{ whiteSpace: "pre-wrap", background: "#f4f4f4", padding: "12px" }}>
-            {result.application_package_text}
-          </pre>
+        <div className="card stack">
+          <div className="inline-actions" style={{ justifyContent: "space-between" }}>
+            <h2 className="section-title" style={{ margin: 0 }}>Generated Package</h2>
+            <StatusBadge status={result.status} />
+          </div>
+          <div className="kv">
+            <div className="kv-row"><span className="kv-label">Package ID:</span> {result.id}</div>
+            <div className="kv-row"><span className="kv-label">Job ID:</span> {result.job_id}</div>
+            <div className="kv-row"><span className="kv-label">Profile ID:</span> {result.profile_id}</div>
+          </div>
+          <div className="pre-block">{result.application_package_text}</div>
         </div>
       )}
     </div>

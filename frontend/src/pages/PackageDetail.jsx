@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
+import StatusBadge from "../components/StatusBadge";
 
 export default function PackageDetail() {
   const { id } = useParams();
@@ -15,20 +16,26 @@ export default function PackageDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <p>Loading package...</p>;
-  if (!pkg) return <p>Package not found.</p>;
+  if (loading) return <div className="card">Loading package...</div>;
+  if (!pkg) return <div className="card">Package not found.</div>;
 
   return (
-    <div>
-      <h1>Package Detail #{pkg.id}</h1>
-      <p><strong>Status:</strong> {pkg.status}</p>
-      <p><strong>Job ID:</strong> {pkg.job_id}</p>
-      <p><strong>Profile ID:</strong> {pkg.profile_id}</p>
+    <div className="stack">
+      <div className="page-header">
+        <h1 className="page-title">Package Detail #{pkg.id}</h1>
+        <p className="page-subtitle">Generated application package record.</p>
+      </div>
 
-      <h2>Application Package Text</h2>
-      <pre style={{ whiteSpace: "pre-wrap", background: "#f4f4f4", padding: "12px" }}>
-        {pkg.application_package_text}
-      </pre>
+      <div className="card kv">
+        <div className="kv-row"><span className="kv-label">Status:</span> <StatusBadge status={pkg.status} /></div>
+        <div className="kv-row"><span className="kv-label">Job ID:</span> {pkg.job_id}</div>
+        <div className="kv-row"><span className="kv-label">Profile ID:</span> {pkg.profile_id}</div>
+      </div>
+
+      <div className="card">
+        <h2 className="section-title">Application Package Text</h2>
+        <div className="pre-block">{pkg.application_package_text}</div>
+      </div>
     </div>
   );
 }
