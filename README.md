@@ -46,10 +46,10 @@ Germany-focused AI job application agent that can:
 ![Dashboard](assets/dashboard.png)
 
 ### Generate Package
-![Generate Package](assets/generate-package.png)
+![Generate Package](assets/generate_package1.png)
 
 ### Applications
-![Applications](assets/applications.png)
+![Applications](assets/application.png)
 
 ## Run backend
 
