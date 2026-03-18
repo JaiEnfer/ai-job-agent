@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 env:
-  BACKEND_IMAGE: ghcr.io/${{ toLower(github.repository_owner) }}/ai-job-agent-backend
-  FRONTEND_IMAGE: ghcr.io/${{ toLower(github.repository_owner) }}/ai-job-agent-frontend
+  BACKEND_IMAGE: ghcr.io/jaienfer/ai-job-agent-backend
+  FRONTEND_IMAGE: ghcr.io/jaienfer/ai-job-agent-frontend
   DOCKER_TAG: ${{ github.sha }}
 
 jobs:
