@@ -24,8 +24,8 @@ export default function GeneratePackage() {
     try {
       const res = await api.post(`/application-package-store/generate/${jobId}/${profileId}`);
       setResult(res.data);
-    } catch (err) {
-      setError(err?.response?.data?.detail || "Failed to generate package");
+    } catch (_err) {
+      setError(_err?.response?.data?.detail || "Failed to generate package");
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export default function GeneratePackage() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to download file");
     }
   }
