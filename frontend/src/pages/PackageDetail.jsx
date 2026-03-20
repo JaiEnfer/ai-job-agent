@@ -34,7 +34,7 @@ export default function PackageDetail() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
+    } catch {
       setError("Failed to download file");
     }
   }
