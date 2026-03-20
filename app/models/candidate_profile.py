@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
 
@@ -35,3 +36,12 @@ class CandidateProfile(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # When a CandidateProfile is deleted, all linked ApplicationPackages are
+    # automatically deleted too (cascade). This prevents the ForeignKeyViolation
+    # error that occurs when trying to delete a profile that still has packages.
+    application_packages = relationship(
+        "ApplicationPackage",
+        cascade="all, delete-orphan",
+        back_populates="profile",
+    )

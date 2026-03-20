@@ -21,12 +21,13 @@ from app.services.cv_generator import (
     build_prioritized_projects,
     build_improvement_suggestions,
 )
+from app.services.llm_cv_rewriter import rewrite_cv_as_recruiter
 
 router = APIRouter(prefix="/cv-generator", tags=["cv-generator"])
 
 
 @router.get("/{job_id}/{profile_id}", response_model=TailoredCVResponse)
-def generate_tailored_cv(job_id: int, profile_id: int, db: Session = Depends(get_db)):
+def generate_tailored_cv(job_id: int, profile_id: int, prompt: str | None = None, db: Session = Depends(get_db)):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -101,6 +102,20 @@ def generate_tailored_cv(job_id: int, profile_id: int, db: Session = Depends(get
         location_match=location_match,
     )
 
+    rewritten_cv = rewrite_cv_as_recruiter(
+        job_title=job.title,
+        job_company=job.company,
+        job_location=job.location,
+        job_description=job.description,
+        full_name=profile.full_name,
+        headline=profile.headline or "",
+        summary=profile.summary or "",
+        skills=profile.skills or "",
+        experience=profile.experience or "",
+        projects=profile.projects or "",
+        prompt=prompt,
+    )
+
     return {
         "job_id": job.id,
         "profile_id": profile.id,
@@ -111,4 +126,5 @@ def generate_tailored_cv(job_id: int, profile_id: int, db: Session = Depends(get
         "tailored_experience_bullets": tailored_experience_bullets,
         "prioritized_projects": prioritized_projects,
         "improvement_suggestions": improvement_suggestions,
+        "rewritten_cv": rewritten_cv,
     }

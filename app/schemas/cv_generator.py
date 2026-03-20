@@ -13,3 +13,6 @@ class TailoredCVResponse(BaseModel):
     tailored_experience_bullets: List[str]
     prioritized_projects: List[str]
     improvement_suggestions: List[str]
+
+    # Optional: LLM-generated rewritten CV (senior recruiter persona)
+    rewritten_cv: str | None = None

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 
 
@@ -46,3 +46,9 @@ class CandidateProfileResponse(CandidateProfileBase):
 
     class Config:
         from_attributes = True
+
+
+class CandidateProfileParseResponse(CandidateProfileBase):
+    """Response shape for parsing a CV without persisting it."""
+    raw_text: Optional[str] = None
+    extracted_links: Optional[List[str]] = None

@@ -18,7 +18,7 @@ class RawLLMJobParseRequest(BaseModel):
 
 
 @router.get("/{job_id}", response_model=LLMParsedJobResponse)
-def parse_job_with_llm(job_id: int, db: Session = Depends(get_db)):
+def parse_job_with_llm(job_id: int, prompt: str | None = None, db: Session = Depends(get_db)):
     job = db.query(Job).filter(Job.id == job_id).first()
 
     if not job:
@@ -30,6 +30,7 @@ def parse_job_with_llm(job_id: int, db: Session = Depends(get_db)):
             company=job.company,
             location=job.location,
             description=job.description,
+            prompt=prompt,
         )
         return parsed
     except Exception as exc:

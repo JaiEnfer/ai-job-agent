@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
 
@@ -24,3 +25,9 @@ class ApplicationPackage(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Back-reference to the CandidateProfile that owns this package.
+    profile = relationship(
+        "CandidateProfile",
+        back_populates="application_packages",
+    )

@@ -1,6 +1,8 @@
+import io
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -27,6 +29,7 @@ from app.services.cv_generator import (
     build_prioritized_projects,
     build_improvement_suggestions,
 )
+from app.services.llm_cv_rewriter import rewrite_cv_as_recruiter
 from app.services.cover_letter_generator import (
     build_opening_paragraph,
     build_motivation_paragraph,
@@ -190,6 +193,19 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         location_match=location_match,
     )
 
+    rewritten_cv = rewrite_cv_as_recruiter(
+        job_title=job.title,
+        job_company=job.company,
+        job_location=job.location,
+        job_description=job.description,
+        full_name=profile.full_name,
+        headline=profile.headline or "",
+        summary=profile.summary or "",
+        skills=profile.skills or "",
+        experience=profile.experience or "",
+        projects=profile.projects or "",
+    )
+
     tailored_cv = {
         "job_id": job.id,
         "profile_id": profile.id,
@@ -200,6 +216,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         "tailored_experience_bullets": tailored_experience_bullets,
         "prioritized_projects": prioritized_projects,
         "improvement_suggestions": cv_improvement_suggestions,
+        "rewritten_cv": rewritten_cv,
     }
 
     opening_paragraph = build_opening_paragraph(
@@ -353,7 +370,12 @@ PRIORITIZED PROJECTS
 
 COVER LETTER
 ------------
-""" + full_cover_letter
+""" + full_cover_letter + f"""
+
+LLM-REWRITTEN CV
+----------------
+{rewritten_cv}
+"""
 
     db_record = ApplicationPackage(
         job_id=job.id,
@@ -373,6 +395,105 @@ COVER LETTER
     db.refresh(db_record)
 
     return db_record
+
+
+def _build_cv_plaintext(cv_json: dict) -> str:
+    parts = []
+    parts.append(f"Target Role: {cv_json.get('target_job_title', '')}")
+    parts.append(f"Target Company: {cv_json.get('target_company', '')}")
+    parts.append("")
+    parts.append("SUMMARY")
+    parts.append("-------")
+    parts.append(cv_json.get("tailored_summary", ""))
+
+    parts.append("")
+    parts.append("PRIORITIZED SKILLS")
+    parts.append("------------------")
+    for skill in cv_json.get("prioritized_skills", []):
+        parts.append(f"- {skill}")
+
+    parts.append("")
+    parts.append("EXPERIENCE HIGHLIGHTS")
+    parts.append("---------------------")
+    for bullet in cv_json.get("tailored_experience_bullets", []):
+        parts.append(f"- {bullet}")
+
+    parts.append("")
+    parts.append("PRIORITIZED PROJECTS")
+    parts.append("--------------------")
+    for proj in cv_json.get("prioritized_projects", []):
+        parts.append(f"- {proj}")
+
+    parts.append("")
+    parts.append("IMPROVEMENT SUGGESTIONS")
+    parts.append("-----------------------")
+    for note in cv_json.get("improvement_suggestions", []):
+        parts.append(f"- {note}")
+
+    return "\n".join(parts).strip()
+
+
+def _build_cover_letter_plaintext(cover_letter_json: dict) -> str:
+    # Use the full cover letter if available, otherwise build from paragraphs.
+    if cover_letter_json.get("full_cover_letter"):
+        return cover_letter_json["full_cover_letter"].strip()
+
+    parts = []
+    parts.append(cover_letter_json.get("opening_paragraph", "").strip())
+    parts.append("")
+    parts.append(cover_letter_json.get("motivation_paragraph", "").strip())
+    parts.append("")
+    parts.append(cover_letter_json.get("fit_paragraph", "").strip())
+    parts.append("")
+    parts.append(cover_letter_json.get("closing_paragraph", "").strip())
+    parts.append("")
+    parts.append("---")
+    parts.append("Notes")
+    parts.append("-----")
+    for note in cover_letter_json.get("improvement_notes", []):
+        parts.append(f"- {note}")
+
+    return "\n".join([p for p in parts if p]).strip()
+
+
+@router.get("/records/{package_id}/download/cv")
+def download_application_package_cv(package_id: int, db: Session = Depends(get_db)):
+    record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Application package not found")
+
+    try:
+        cv_json = json.loads(record.tailored_cv_json or "{}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to parse CV data")
+
+    content = _build_cv_plaintext(cv_json)
+    filename = f"tailored_cv_{package_id}.txt"
+    return StreamingResponse(
+        io.BytesIO(content.encode("utf-8")),
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/records/{package_id}/download/cover-letter")
+def download_application_package_cover_letter(package_id: int, db: Session = Depends(get_db)):
+    record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Application package not found")
+
+    try:
+        cover_letter_json = json.loads(record.cover_letter_json or "{}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to parse cover letter data")
+
+    content = _build_cover_letter_plaintext(cover_letter_json)
+    filename = f"cover_letter_{package_id}.txt"
+    return StreamingResponse(
+        io.BytesIO(content.encode("utf-8")),
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.get("/records", response_model=list[ApplicationPackageRecordResponse])

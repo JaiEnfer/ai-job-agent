@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from app.core.config import settings
 from app.api.health import router as health_router
@@ -27,13 +29,20 @@ from app.api.scraper_package import router as scraper_package_router
 from app.api.site_scraper import router as site_scraper_router
 from app.api.site_scraper_debug import router as site_scraper_debug_router
 from app.api.llm_job_parser import router as llm_job_parser_router
+from app.api.llm_models import router as llm_models_router
+from app.api.job_chat import router as job_chat_router
 from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 app = FastAPI(title=settings.APP_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,6 +62,7 @@ app.include_router(candidate_profile_analysis_router)
 app.include_router(job_match_router)
 app.include_router(cv_generator_router)
 app.include_router(cv_text_router)
+app.include_router(job_chat_router)
 app.include_router(cover_letter_router)
 app.include_router(cover_letter_text_router)
 app.include_router(ats_score_router)
@@ -70,6 +80,7 @@ app.include_router(scraper_package_router)
 app.include_router(site_scraper_router)
 app.include_router(site_scraper_debug_router)
 app.include_router(llm_job_parser_router)
+app.include_router(llm_models_router)
 
 @app.get("/")
 def root():

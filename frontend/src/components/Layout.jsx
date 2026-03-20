@@ -21,6 +21,7 @@ export default function Layout({ children }) {
           <Link className="nav-link" to="/packages">Packages</Link>
           <Link className="nav-link" to="/applications">Applications</Link>
           <Link className="nav-link" to="/applications/create">Create Application</Link>
+          <Link className="nav-link" to="/job-chat">Job Chat</Link>
         </div>
       </aside>
 

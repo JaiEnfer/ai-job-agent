@@ -10,6 +10,7 @@ import GeneratePackage from "./pages/GeneratePackage";
 import Applications from "./pages/Applications";
 import PackageDetail from "./pages/PackageDetail";
 import CreateApplication from "./pages/CreateApplication";
+import JobChat from "./pages/JobChat";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/generate-package" element={<GeneratePackage />} />
           <Route path="/packages" element={<ApplicationPackages />} />
           <Route path="/packages/:id" element={<PackageDetail />} />
+          <Route path="/job-chat" element={<JobChat />} />
           <Route path="/applications" element={<Applications />} />
           <Route path="/applications/create" element={<CreateApplication />} />
         </Routes>

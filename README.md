@@ -58,6 +58,20 @@ Germany-focused AI job application agent that can:
 
 ## Run backend
 
+1) Activate the Python virtual environment (Windows):
+
+```powershell
+.\.venv\Scripts\activate
+```
+
+2) Install dependencies (if not already installed):
+
+```bash
+pip install -r requirements.txt
+```
+
+3) Start the server:
+
 ```bash
 uvicorn app.main:app --reload
 ```
@@ -86,7 +100,11 @@ APP_HOST=127.0.0.1
 APP_PORT=8000
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ai_job_agent
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-3-flash
+GEMINI_MODEL=gemini-1.0
+
+# Optional: override the default LLM prompts
+LLM_JOB_PARSER_PROMPT=Your custom prompt for parsing job descriptions
+LLM_CV_REWRITE_PROMPT=Your custom prompt for rewriting CVs as a senior recruiter
 ```
 
 ## MVP Goal

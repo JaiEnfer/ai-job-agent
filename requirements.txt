@@ -3,6 +3,14 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 pydantic
+pydantic-settings
 python-dotenv
 playwright
 google-genai
+PyPDF2
+pdfplumber
+python-docx
+python-multipart
+pytesseract
+pdf2image
+Pillow

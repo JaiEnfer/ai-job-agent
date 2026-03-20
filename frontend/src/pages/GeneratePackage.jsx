@@ -31,6 +31,25 @@ export default function GeneratePackage() {
     }
   }
 
+  async function handleDownload(type) {
+    if (!result?.id) return;
+
+    const url = `/application-package-store/records/${result.id}/download/${type}`;
+    try {
+      const res = await api.get(url, { responseType: "blob" });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${type.replace("-", "_")}_${result.id}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      setError("Failed to download file");
+    }
+  }
+
   return (
     <div className="stack">
       <div className="page-header">
@@ -66,17 +85,25 @@ export default function GeneratePackage() {
 
       {result && (
         <div className="card stack">
-          <div className="inline-actions" style={{ justifyContent: "space-between" }}>
-            <h2 className="section-title" style={{ margin: 0 }}>Generated Package</h2>
-            <StatusBadge status={result.status} />
-          </div>
-          <div className="kv">
-            <div className="kv-row"><span className="kv-label">Package ID:</span> {result.id}</div>
-            <div className="kv-row"><span className="kv-label">Job ID:</span> {result.job_id}</div>
-            <div className="kv-row"><span className="kv-label">Profile ID:</span> {result.profile_id}</div>
-          </div>
-          <div className="pre-block">{result.application_package_text}</div>
+        <div className="inline-actions" style={{ justifyContent: "space-between" }}>
+          <h2 className="section-title" style={{ margin: 0 }}>Generated Package</h2>
+          <StatusBadge status={result.status} />
         </div>
+        <div className="kv">
+          <div className="kv-row"><span className="kv-label">Package ID:</span> {result.id}</div>
+          <div className="kv-row"><span className="kv-label">Job ID:</span> {result.job_id}</div>
+          <div className="kv-row"><span className="kv-label">Profile ID:</span> {result.profile_id}</div>
+        </div>
+        <div className="inline-actions">
+          <button onClick={() => handleDownload("cv")} className="button">
+            Download CV
+          </button>
+          <button onClick={() => handleDownload("cover-letter")} className="button">
+            Download Cover Letter
+          </button>
+        </div>
+        <div className="pre-block">{result.application_package_text}</div>
+      </div>
       )}
     </div>
   );

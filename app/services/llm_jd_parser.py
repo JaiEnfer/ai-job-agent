@@ -8,10 +8,13 @@ def parse_job_description_with_llm(
     company: str | None,
     location: str | None,
     description: str,
+    prompt: str | None = None,
 ) -> dict:
     client = get_gemini_client()
 
-    prompt = f"""
+    prompt = prompt or settings.LLM_JOB_PARSER_PROMPT
+    if not prompt:
+        prompt = f"""
 You are an expert job description parser for the German and European tech job market.
 
 Extract structured information from this job description.

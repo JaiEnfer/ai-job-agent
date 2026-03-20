@@ -28,6 +28,7 @@ export default function CreateProfile() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [extractedLinks, setExtractedLinks] = useState([]);
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -36,6 +37,8 @@ export default function CreateProfile() {
       [name]: type === "checkbox" ? checked : value,
     });
   }
+
+  const [cvFile, setCvFile] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -50,11 +53,55 @@ export default function CreateProfile() {
     }
   }
 
+  async function handleUpload() {
+    if (!cvFile) {
+      setError("Please select a CV file to upload");
+      return;
+    }
+
+    setMessage("");
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("cv", cvFile);
+
+      const response = await api.post("/candidate-profiles/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setForm({
+        ...form,
+        ...response.data,
+      });
+      setExtractedLinks(response.data.extracted_links || []);
+      setMessage(`Profile created from CV with ID ${response.data.id}`);
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Failed to create profile from CV");
+    }
+  }
+
   return (
     <div>
       <h1>Create Candidate Profile</h1>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: "10px", maxWidth: "800px" }}>
+        <div>
+          <label>
+            Upload CV (PDF/DOCX/TXT):
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt"
+              onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+            />
+          </label>
+          <button type="button" onClick={handleUpload} style={{ marginTop: "10px" }}>
+            Create Profile from CV
+          </button>
+        </div>
+
+        <hr />
+
         <input name="full_name" placeholder="Full name" value={form.full_name} onChange={handleChange} required />
         <input name="email" placeholder="Email" value={form.email} onChange={handleChange} />
         <input name="phone" placeholder="Phone" value={form.phone} onChange={handleChange} />
@@ -87,6 +134,21 @@ export default function CreateProfile() {
 
         <button type="submit">Create Profile</button>
       </form>
+
+      {extractedLinks.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Extracted links (click to open)</h3>
+          <ul>
+            {extractedLinks.map((link) => (
+              <li key={link}>
+                <a href={link} target="_blank" rel="noopener noreferrer">
+                  {link}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {message && <p style={{ color: "green" }}>{message}</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
