@@ -22,9 +22,6 @@ class CandidateProfileBase(BaseModel):
     certifications: Optional[str] = None
     languages: Optional[str] = None
 
-    target_roles: Optional[str] = None
-    preferred_locations: Optional[str] = None
-
     work_authorization: Optional[str] = None
     visa_status: Optional[str] = None
     open_to_relocation: Optional[bool] = False

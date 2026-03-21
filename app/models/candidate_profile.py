@@ -26,9 +26,6 @@ class CandidateProfile(Base):
     certifications = Column(Text, nullable=True)
     languages = Column(Text, nullable=True)
 
-    target_roles = Column(Text, nullable=True)
-    preferred_locations = Column(Text, nullable=True)
-
     work_authorization = Column(String(255), nullable=True)
     visa_status = Column(String(255), nullable=True)
     open_to_relocation = Column(Boolean, default=False)
