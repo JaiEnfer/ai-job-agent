@@ -15,7 +15,7 @@ function newEducation() {
 }
 
 function newCertification() {
-  return { id: crypto.randomUUID(), name: "", issuer: "", date: "", link: "" };
+  return { id: crypto.randomUUID(), name: "" };
 }
 
 function newLanguage() {
@@ -52,13 +52,7 @@ function serializeEducation(entries) {
 }
 
 function serializeCertifications(entries) {
-  return entries
-    .map((c) => {
-      const date = c.date ? ` (${c.date})` : "";
-      const link = c.link ? ` | ${c.link}` : "";
-      return `${c.name} – ${c.issuer}${date}${link}`.trim();
-    })
-    .join("\n\n");
+  return entries.map((c) => c.name.trim()).filter(Boolean).join("\n");
 }
 
 function serializeLanguages(entries) {
@@ -273,48 +267,14 @@ function CertificationEntry({ entry, onChange, onRemove }) {
   return (
     <div style={styles.card}>
       <button type="button" onClick={onRemove} style={styles.removeBtn} title="Remove">✕</button>
-
-      <div style={styles.row2}>
-        <div style={styles.field}>
-          <label style={styles.label}>Certificate Name</label>
-          <input
-            style={styles.input}
-            placeholder="e.g. AWS Certified Solutions Architect…"
-            value={entry.name}
-            onChange={(e) => update("name", e.target.value)}
-          />
-        </div>
-        <div style={styles.field}>
-          <label style={styles.label}>Issuing Organisation</label>
-          <input
-            style={styles.input}
-            placeholder="e.g. Amazon, Coursera, Google…"
-            value={entry.issuer}
-            onChange={(e) => update("issuer", e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div style={{ ...styles.row2, marginTop: 12 }}>
-        <div style={styles.field}>
-          <label style={styles.label}>Date Issued</label>
-          <input
-            type="month"
-            style={styles.input}
-            value={entry.date}
-            onChange={(e) => update("date", e.target.value)}
-          />
-        </div>
-        <div style={styles.field}>
-          <label style={styles.label}>Certificate Link (optional)</label>
-          <input
-            type="url"
-            style={styles.input}
-            placeholder="https://credential link…"
-            value={entry.link}
-            onChange={(e) => update("link", e.target.value)}
-          />
-        </div>
+      <div style={styles.field}>
+        <label style={styles.label}>Certificate Name</label>
+        <input
+          style={styles.input}
+          placeholder="e.g. AWS Certified Solutions Architect, LLM Applications…"
+          value={entry.name}
+          onChange={(e) => update("name", e.target.value)}
+        />
       </div>
     </div>
   );
@@ -460,6 +420,88 @@ export default function CreateProfile() {
     }
   }
 
+  // ── CV response → structured state parsers ──────────────────────────────
+
+  function parseExperiencesFromText(text) {
+    if (!text) return [];
+    // Split on double newline or on lines that look like job title patterns
+    const blocks = text.split(/\n{2,}/);
+    return blocks.filter(Boolean).map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      // Try to extract date range from first line: "Title at Company (2022-01 – Present)"
+      const dateMatch = lines[0]?.match(/\(?([\d]{4}[-\/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-\/]?\d{0,2}|Present|present)\)?/);
+      const from = dateMatch?.[1] || "";
+      const to   = dateMatch?.[2]?.toLowerCase() === "present" ? "" : (dateMatch?.[2] || "");
+      const current = dateMatch?.[2]?.toLowerCase() === "present";
+      // Extract title and company from "Title at Company (period)"
+      const titleLine = lines[0]?.replace(/\(.*?\)/, "").replace(dateMatch?.[0] || "", "").trim();
+      const atIdx = titleLine?.indexOf(" at ");
+      const title   = atIdx > -1 ? titleLine.slice(0, atIdx).trim() : titleLine || "";
+      const company = atIdx > -1 ? titleLine.slice(atIdx + 4).trim() : "";
+      const description = lines.slice(1).join("\n");
+      return { id: crypto.randomUUID(), company, title, from, to, current, description };
+    });
+  }
+
+  function parseProjectsFromText(text) {
+    if (!text) return [];
+    const blocks = text.split(/\n{2,}/);
+    return blocks.filter(Boolean).map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      const linkLine = lines.find((l) => l.startsWith("Link:") || l.startsWith("http"));
+      const link = linkLine?.replace(/^Link:\s*/, "").trim() || "";
+      const title = lines[0] || "";
+      const description = lines.slice(1).filter((l) => l !== linkLine).join("\n");
+      return { id: crypto.randomUUID(), title, description, link };
+    });
+  }
+
+  function parseEducationsFromText(text) {
+    if (!text) return [];
+    const blocks = text.split(/\n{2,}/);
+    return blocks.filter(Boolean).map((block) => {
+      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+      // Pattern: "Degree – Institution (period) | Grade/GPA: X"
+      const dateMatch = lines[0]?.match(/([\d]{4}[-\/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-\/]?\d{0,2}|Present|present)/);
+      const from = dateMatch?.[1] || "";
+      const to   = dateMatch?.[2]?.toLowerCase() === "present" ? "" : (dateMatch?.[2] || "");
+      const current = dateMatch?.[2]?.toLowerCase() === "present";
+      const gpaMatch = lines[0]?.match(/Grade\/GPA:\s*([^\s|]+)/);
+      const gpa = gpaMatch?.[1] || "";
+      const clean = lines[0]?.replace(/\(.*?\)/, "").replace(/\|.*$/, "").trim() || "";
+      const dashIdx = clean.indexOf(" – ");
+      const degree      = dashIdx > -1 ? clean.slice(0, dashIdx).trim() : clean;
+      const institution = dashIdx > -1 ? clean.slice(dashIdx + 3).trim() : (lines[1] || "");
+      return { id: crypto.randomUUID(), institution, degree, gpa, from, to, current };
+    });
+  }
+
+  function parseCertificationsFromText(text) {
+    if (!text) return [];
+    return text.split(/\n|·|•/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((name) => ({ id: crypto.randomUUID(), name }));
+  }
+
+  function parseLanguagesFromText(text) {
+    if (!text) return [];
+    // Format: "English – Native, German – Fluent" or "English (C1), German (B1)"
+    return text.split(",").map((part) => {
+      part = part.trim();
+      const dashIdx = part.indexOf(" – ");
+      if (dashIdx > -1) {
+        return { id: crypto.randomUUID(), language: part.slice(0, dashIdx).trim(), proficiency: part.slice(dashIdx + 3).trim() };
+      }
+      // Try "(level)" pattern: "English (C1/Advanced)"
+      const parenMatch = part.match(/^([^(]+)\s*\(([^)]+)\)/);
+      if (parenMatch) {
+        return { id: crypto.randomUUID(), language: parenMatch[1].trim(), proficiency: parenMatch[2].trim() };
+      }
+      return { id: crypto.randomUUID(), language: part, proficiency: "" };
+    }).filter((l) => l.language);
+  }
+
   async function handleUpload() {
     if (!cvFile) { setError("Please select a CV file to upload"); return; }
     setMessage("");
@@ -473,9 +515,36 @@ export default function CreateProfile() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setForm({ ...form, ...response.data });
-      setExtractedLinks(response.data.extracted_links || []);
-      setMessage(`Profile created from CV with ID ${response.data.id}`);
+      const data = response.data;
+
+      // Populate flat form fields
+      setForm((prev) => ({
+        ...prev,
+        full_name:        data.full_name        || prev.full_name,
+        email:            data.email            || prev.email,
+        phone:            data.phone            || prev.phone,
+        location:         data.location         || prev.location,
+        linkedin_url:     data.linkedin_url     || prev.linkedin_url,
+        github_url:       data.github_url       || prev.github_url,
+        portfolio_url:    data.portfolio_url    || prev.portfolio_url,
+        headline:         data.headline         || prev.headline,
+        summary:          data.summary          || prev.summary,
+        skills:           data.skills           || prev.skills,
+        work_authorization: data.work_authorization || prev.work_authorization,
+        visa_status:      data.visa_status      || prev.visa_status,
+        open_to_relocation: data.open_to_relocation ?? prev.open_to_relocation,
+        open_to_remote:   data.open_to_remote   ?? prev.open_to_remote,
+      }));
+
+      // Populate structured sections from parsed text
+      if (data.experience)     setExperiences(parseExperiencesFromText(data.experience));
+      if (data.projects)       setProjects(parseProjectsFromText(data.projects));
+      if (data.education)      setEducations(parseEducationsFromText(data.education));
+      if (data.certifications) setCertifications(parseCertificationsFromText(data.certifications));
+      if (data.languages)      setLanguages(parseLanguagesFromText(data.languages));
+
+      setExtractedLinks(data.extracted_links || []);
+      setMessage(`Profile created from CV with ID ${data.id}`);
     } catch (err) {
       setError(err?.response?.data?.detail || "Failed to create profile from CV");
     }

@@ -1,74 +1,91 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import StatusBadge from "../components/StatusBadge";
 
-export default function PackageDetail() {
-  const { id } = useParams();
-  const [pkg, setPkg] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function GeneratePackage() {
+  const navigate = useNavigate();
+
+  const [jobs, setJobs] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api
-      .get(`/application-package-store/records/${id}`)
-      .then((response) => setPkg(response.data))
-      .catch((error) => {
-        console.error("Failed to load package:", error);
-        setError("Failed to load package");
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+    api.get("/jobs").then((r) => setJobs(r.data)).catch(() => setError("Failed to load jobs"));
+    api.get("/candidate-profiles").then((r) => setProfiles(r.data)).catch(() => setError("Failed to load profiles"));
+  }, []);
 
-  async function handleDownload(type) {
-    if (!pkg?.id) return;
-
-    const url = `/application-package-store/records/${pkg.id}/download/${type}`;
+  async function handleGenerate() {
+    if (!selectedJobId || !selectedProfileId) {
+      setError("Please select both a job and a profile.");
+      return;
+    }
+    setLoading(true);
+    setError("");
     try {
-      const res = await api.get(url, { responseType: "blob" });
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `${type.replace("-", "_")}_${pkg.id}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      setError("Failed to download file");
+      const response = await api.post(
+        `/application-package-store/generate/${selectedJobId}/${selectedProfileId}`
+      );
+      navigate(`/packages/${response.data.id}`);
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Failed to generate package.");
+    } finally {
+      setLoading(false);
     }
   }
-
-  if (loading) return <div className="card">Loading package...</div>;
-  if (!pkg) return <div className="card">Package not found.</div>;
 
   return (
     <div className="stack">
       <div className="page-header">
-        <h1 className="page-title">Package Detail #{pkg.id}</h1>
-        <p className="page-subtitle">Generated application package record.</p>
+        <h1 className="page-title">Generate Package</h1>
+        <p className="page-subtitle">Select a job and a candidate profile to generate an application package.</p>
       </div>
 
-      <div className="card kv">
-        <div className="kv-row"><span className="kv-label">Status:</span> <StatusBadge status={pkg.status} /></div>
-        <div className="kv-row"><span className="kv-label">Job ID:</span> {pkg.job_id}</div>
-        <div className="kv-row"><span className="kv-label">Profile ID:</span> {pkg.profile_id}</div>
-      </div>
+      <div className="card" style={{ display: "grid", gap: "14px" }}>
+        <div>
+          <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Job</label>
+          <select
+            value={selectedJobId}
+            onChange={(e) => setSelectedJobId(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: "1.5px solid #e5e7eb", fontSize: 14 }}
+          >
+            <option value="">Select a job…</option>
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                #{job.id} — {job.title} @ {job.company}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="card inline-actions">
-        <button onClick={() => handleDownload("cv")} className="button">
-          Download CV
+        <div>
+          <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>Candidate Profile</label>
+          <select
+            value={selectedProfileId}
+            onChange={(e) => setSelectedProfileId(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: "1.5px solid #e5e7eb", fontSize: 14 }}
+          >
+            <option value="">Select a profile…</option>
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                #{profile.id} — {profile.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {error && <div className="message-error">{error}</div>}
+
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="button"
+          style={{ justifySelf: "start" }}
+        >
+          {loading ? "Generating…" : "Generate Package"}
         </button>
-        <button onClick={() => handleDownload("cover-letter")} className="button">
-          Download Cover Letter
-        </button>
-      </div>
-
-      {error && <div className="message-error">{error}</div>}
-
-      <div className="card">
-        <h2 className="section-title">Application Package Text</h2>
-        <div className="pre-block">{pkg.application_package_text}</div>
       </div>
     </div>
   );

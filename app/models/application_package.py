@@ -31,3 +31,12 @@ class ApplicationPackage(Base):
         "CandidateProfile",
         back_populates="application_packages",
     )
+
+    # When a package is deleted, set application_package_id to NULL on any
+    # linked Application rows rather than blocking or cascading the delete.
+    applications = relationship(
+        "Application",
+        foreign_keys="Application.application_package_id",
+        back_populates="application_package",
+        cascade="all, delete-orphan",
+    )

@@ -78,8 +78,6 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         "profile_id": profile.id,
         "full_name": profile.full_name,
         "extracted_skills": extracted_profile_skills,
-        "target_roles": profile.target_roles,
-        "preferred_locations": profile.preferred_locations,
         "work_authorization": profile.work_authorization,
         "visa_status": profile.visa_status,
         "open_to_relocation": profile.open_to_relocation,
@@ -91,7 +89,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         extracted_profile_skills,
     )
 
-    location_match = evaluate_location_match(job.location, profile.preferred_locations)
+    location_match = evaluate_location_match(job.location, profile.preferred_locations if hasattr(profile, 'preferred_locations') else None)
     work_model_match = evaluate_work_model_match(parsed_job["work_model"], profile.open_to_remote)
     language_match = evaluate_language_match(
         parsed_job["german_required"],
@@ -229,7 +227,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         target_job_title=job.title,
         target_company=job.company,
         summary=profile.summary or "",
-        preferred_locations=profile.preferred_locations or "",
+        preferred_locations=getattr(profile, 'preferred_locations', None) or "",
     )
 
     fit_paragraph = build_fit_paragraph(
@@ -434,7 +432,6 @@ def _build_cv_plaintext(cv_json: dict) -> str:
 
 
 def _build_cover_letter_plaintext(cover_letter_json: dict) -> str:
-    # Use the full cover letter if available, otherwise build from paragraphs.
     if cover_letter_json.get("full_cover_letter"):
         return cover_letter_json["full_cover_letter"].strip()
 
@@ -505,11 +502,19 @@ def list_application_packages(db: Session = Depends(get_db)):
 @router.get("/records/{package_id}", response_model=ApplicationPackageRecordResponse)
 def get_application_package(package_id: int, db: Session = Depends(get_db)):
     record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
-
     if not record:
         raise HTTPException(status_code=404, detail="Application package not found")
-
     return record
+
+
+@router.delete("/records/{package_id}")
+def delete_application_package(package_id: int, db: Session = Depends(get_db)):
+    record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Application package not found")
+    db.delete(record)
+    db.commit()
+    return {"message": f"Application package {package_id} deleted successfully"}
 
 
 @router.put("/records/{package_id}/status", response_model=ApplicationPackageRecordResponse)
@@ -519,12 +524,9 @@ def update_application_package_status(
     db: Session = Depends(get_db)
 ):
     record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
-
     if not record:
         raise HTTPException(status_code=404, detail="Application package not found")
-
     record.status = payload.status
     db.commit()
     db.refresh(record)
-
     return record

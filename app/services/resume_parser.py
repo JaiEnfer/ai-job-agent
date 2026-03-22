@@ -44,8 +44,16 @@ PHONE_REGEX = re.compile(r"\+?[\d\s\-\.\(\)]{7,}")
 URL_REGEX = re.compile(r"(?:https?://)?(?:www\.)?[A-Za-z0-9\-_.]+\.[A-Za-z]{2,}(?:/[^\s<>]*)?")
 MAILTO_REGEX = re.compile(r"mailto:([\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,})", re.IGNORECASE)
 TEL_REGEX = re.compile(r"tel:([\d\s\-\.\(\)]+)", re.IGNORECASE)
-LINKEDIN_SHORTHAND_RE = re.compile(r"linkedin\s*[:/]?\s*([\w\-]+(?:/[\w\-]+)*)", re.IGNORECASE)
-GITHUB_SHORTHAND_RE = re.compile(r"github\s*[:/]?\s*([\w\-]+)", re.IGNORECASE)
+LINKEDIN_SHORTHAND_RE = re.compile(
+    # Must be followed by a non-space handle (not just a standalone word like "LinkedIn")
+    r"linkedin\s*[:/]\s*([\w\-]+(?:/[\w\-]+)+)",
+    re.IGNORECASE
+)
+GITHUB_SHORTHAND_RE = re.compile(
+    # Must be followed by a slash or colon then a handle
+    r"github\s*[:/]\s*([\w\-]+)",
+    re.IGNORECASE
+)
 
 # Terms that must never be split by the camelCase post-processor.
 # Sorted longest-first so longer matches take priority.
@@ -77,19 +85,29 @@ def _clean_url(url: str) -> str:
 
 
 def extract_profile_links(text: str, extra_urls: Optional[List[str]] = None) -> Dict[str, str]:
-    urls = extract_urls(text) + extract_urls(re.sub(r"\s+", "", text))
-    if extra_urls:
-        urls.extend(extra_urls)
+    # Prioritise real hyperlinks from PDF/DOCX annotations — most reliable source
+    annotation_urls = list(extra_urls or [])
+
+    # Plain-text URLs: only accept clearly real-looking ones (no body text noise)
+    text_urls = [
+        u for u in extract_urls(text)
+        if len(u) > 10 and u.count(".") >= 1
+        and not any(stop in u.lower() for stop in ["fromprototyping", "proficient", "deployment"])
+    ]
 
     links: Dict[str, str] = {}
-    for url in urls:
+
+    # Process annotation URLs first (highest trust), then text URLs
+    for url in annotation_urls + text_urls:
         url = _clean_url(url)
         low = url.lower()
-        if "linkedin.com" in low and "in/" in low:
+        if len(url) > 300:  # skip garbage long strings
+            continue
+        if "linkedin.com" in low and "/in/" in low:
             links.setdefault("linkedin_url", url)
-        elif "github.com" in low:
+        elif "github.com" in low and low.count("/") >= 3:
             links.setdefault("github_url", url)
-        elif any(k in low for k in ("behance.net", "dribbble.com", "portfolio")):
+        elif any(k in low for k in ("behance.net", "dribbble.com", "vercel.app", "netlify.app", "portfolio")):
             links.setdefault("portfolio_url", url)
         elif low.startswith("mailto:"):
             m = MAILTO_REGEX.search(url)
@@ -99,21 +117,23 @@ def extract_profile_links(text: str, extra_urls: Optional[List[str]] = None) -> 
             m = TEL_REGEX.search(url)
             if m:
                 links.setdefault("phone", m.group(1))
-        elif "http" in low and "linkedin" not in low and "github" not in low:
-            links.setdefault("portfolio_url", url)
+        elif re.match(r"https?://[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}", url):
+            if "linkedin" not in low and "github" not in low:
+                links.setdefault("portfolio_url", url)
 
+    # Shorthand fallback — only when annotation links didn't provide these
     if "linkedin_url" not in links:
         m = LINKEDIN_SHORTHAND_RE.search(text)
         if m:
             handle = m.group(1).strip().strip("/")
-            if "@" not in handle and len(handle) > 2:
+            if "@" not in handle and 2 < len(handle) < 60:
                 links["linkedin_url"] = f"https://linkedin.com/in/{handle}"
 
     if "github_url" not in links:
         m = GITHUB_SHORTHAND_RE.search(text)
         if m:
             handle = m.group(1).strip()
-            if "@" not in handle and len(handle) > 1:
+            if "@" not in handle and 1 < len(handle) < 40:
                 links["github_url"] = f"https://github.com/{handle}"
 
     return links
