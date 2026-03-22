@@ -37,7 +37,7 @@ export default function PackageDetail() {
       const blobUrl = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `${type.replace("-", "_")}_${pkg.id}.txt`;
+      link.download = `${type.replace("-", "_")}_${pkg.id}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();

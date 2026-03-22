@@ -3,6 +3,11 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.enums import TA_LEFT
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -50,7 +55,12 @@ router = APIRouter(prefix="/application-package-store", tags=["application-packa
 
 
 @router.post("/generate/{job_id}/{profile_id}", response_model=ApplicationPackageRecordResponse)
-def save_application_package(job_id: int, profile_id: int, db: Session = Depends(get_db)):
+def save_application_package(
+    job_id: int,
+    profile_id: int,
+    language: str = "english",
+    db: Session = Depends(get_db),
+):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -202,6 +212,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         skills=profile.skills or "",
         experience=profile.experience or "",
         projects=profile.projects or "",
+        language=language,
     )
 
     tailored_cv = {
@@ -221,6 +232,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         full_name=profile.full_name,
         target_job_title=job.title,
         target_company=job.company,
+        language=language,
     )
 
     motivation_paragraph = build_motivation_paragraph(
@@ -228,6 +240,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         target_company=job.company,
         summary=profile.summary or "",
         preferred_locations=getattr(profile, 'preferred_locations', None) or "",
+        language=language,
     )
 
     fit_paragraph = build_fit_paragraph(
@@ -235,12 +248,14 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         missing_skills=missing_skills,
         experience=profile.experience or "",
         projects=profile.projects or "",
+        language=language,
     )
 
     closing_paragraph = build_closing_paragraph(
         target_company=job.company,
         visa_status=profile.visa_status or "",
         work_authorization=profile.work_authorization or "",
+        language=language,
     )
 
     cover_letter_notes = build_improvement_notes(
@@ -256,6 +271,7 @@ def save_application_package(job_id: int, profile_id: int, db: Session = Depends
         motivation_paragraph=motivation_paragraph,
         fit_paragraph=fit_paragraph,
         closing_paragraph=closing_paragraph,
+        language=language,
     )
 
     cover_letter = {
@@ -396,37 +412,39 @@ LLM-REWRITTEN CV
 
 
 def _build_cv_plaintext(cv_json: dict) -> str:
+    """Build CV text for PDF — uses the LLM-rewritten CV as the primary content."""
+    rewritten = cv_json.get("rewritten_cv", "").strip()
+    if rewritten:
+        return rewritten
+
+    # Fallback to structured fields if LLM rewrite is missing
     parts = []
     parts.append(f"Target Role: {cv_json.get('target_job_title', '')}")
     parts.append(f"Target Company: {cv_json.get('target_company', '')}")
     parts.append("")
     parts.append("SUMMARY")
-    parts.append("-------")
     parts.append(cv_json.get("tailored_summary", ""))
 
-    parts.append("")
-    parts.append("PRIORITIZED SKILLS")
-    parts.append("------------------")
-    for skill in cv_json.get("prioritized_skills", []):
-        parts.append(f"- {skill}")
+    skills = cv_json.get("prioritized_skills", [])
+    if skills:
+        parts.append("")
+        parts.append("SKILLS")
+        for skill in skills:
+            parts.append(f"- {skill}")
 
-    parts.append("")
-    parts.append("EXPERIENCE HIGHLIGHTS")
-    parts.append("---------------------")
-    for bullet in cv_json.get("tailored_experience_bullets", []):
-        parts.append(f"- {bullet}")
+    bullets = cv_json.get("tailored_experience_bullets", [])
+    if bullets:
+        parts.append("")
+        parts.append("EXPERIENCE HIGHLIGHTS")
+        for bullet in bullets:
+            parts.append(f"- {bullet}")
 
-    parts.append("")
-    parts.append("PRIORITIZED PROJECTS")
-    parts.append("--------------------")
-    for proj in cv_json.get("prioritized_projects", []):
-        parts.append(f"- {proj}")
-
-    parts.append("")
-    parts.append("IMPROVEMENT SUGGESTIONS")
-    parts.append("-----------------------")
-    for note in cv_json.get("improvement_suggestions", []):
-        parts.append(f"- {note}")
+    projects = cv_json.get("prioritized_projects", [])
+    if projects:
+        parts.append("")
+        parts.append("PROJECTS")
+        for proj in projects:
+            parts.append(f"- {proj}")
 
     return "\n".join(parts).strip()
 
@@ -453,6 +471,93 @@ def _build_cover_letter_plaintext(cover_letter_json: dict) -> str:
     return "\n".join([p for p in parts if p]).strip()
 
 
+def _build_pdf(title: str, content: str) -> bytes:
+    """Convert plain text content into a clean A4 PDF using reportlab."""
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=22 * mm,
+        rightMargin=22 * mm,
+        topMargin=22 * mm,
+        bottomMargin=22 * mm,
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        "CVTitle",
+        parent=styles["Heading1"],
+        fontSize=15,
+        spaceAfter=8,
+        textColor="#1a1a2e",
+        leading=20,
+    )
+    heading_style = ParagraphStyle(
+        "CVHeading",
+        parent=styles["Heading2"],
+        fontSize=11,
+        spaceBefore=10,
+        spaceAfter=4,
+        textColor="#1a1a2e",
+        leading=15,
+    )
+    body_style = ParagraphStyle(
+        "CVBody",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=15,
+        spaceAfter=4,
+        wordWrap="LTR",
+        alignment=TA_LEFT,
+    )
+    bullet_style = ParagraphStyle(
+        "CVBullet",
+        parent=body_style,
+        leftIndent=14,
+        spaceAfter=3,
+        leading=14,
+    )
+
+    def esc(text):
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    story = []
+    story.append(Paragraph(esc(title), title_style))
+    story.append(Spacer(1, 3 * mm))
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            story.append(Spacer(1, 2 * mm))
+            continue
+
+        # Skip pure divider lines
+        if set(stripped) <= set("-=*"):
+            continue
+
+        # Bullet point
+        if stripped.startswith("- ") or stripped.startswith("• "):
+            text = stripped[2:].strip()
+            story.append(Paragraph(f"• {esc(text)}", bullet_style))
+
+        # Section heading: all caps, or short line that looks like a header
+        elif (
+            stripped.isupper()
+            or (len(stripped) < 50 and stripped.endswith(":") and stripped[0].isupper())
+            or (len(stripped) < 40 and stripped[0].isupper() and "\n" not in stripped
+                and not any(c in stripped for c in [".", ",", "(", ")"]))
+        ):
+            story.append(Paragraph(esc(stripped), heading_style))
+
+        else:
+            story.append(Paragraph(esc(stripped), body_style))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
 @router.get("/records/{package_id}/download/cv")
 def download_application_package_cv(package_id: int, db: Session = Depends(get_db)):
     record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
@@ -465,10 +570,13 @@ def download_application_package_cv(package_id: int, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail="Failed to parse CV data")
 
     content = _build_cv_plaintext(cv_json)
-    filename = f"tailored_cv_{package_id}.txt"
+    title = f"Tailored CV — {cv_json.get('target_job_title', '')} @ {cv_json.get('target_company', '')}"
+
+    pdf_bytes = _build_pdf(title, content)
+    filename = f"tailored_cv_{package_id}.pdf"
     return StreamingResponse(
-        io.BytesIO(content.encode("utf-8")),
-        media_type="text/plain",
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
@@ -485,10 +593,13 @@ def download_application_package_cover_letter(package_id: int, db: Session = Dep
         raise HTTPException(status_code=500, detail="Failed to parse cover letter data")
 
     content = _build_cover_letter_plaintext(cover_letter_json)
-    filename = f"cover_letter_{package_id}.txt"
+    title = f"Cover Letter — {cover_letter_json.get('target_job_title', '')} @ {cover_letter_json.get('target_company', '')}"
+
+    pdf_bytes = _build_pdf(title, content)
+    filename = f"cover_letter_{package_id}.pdf"
     return StreamingResponse(
-        io.BytesIO(content.encode("utf-8")),
-        media_type="text/plain",
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
@@ -512,6 +623,15 @@ def delete_application_package(package_id: int, db: Session = Depends(get_db)):
     record = db.query(ApplicationPackage).filter(ApplicationPackage.id == package_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Application package not found")
+
+    # Delete any linked Application rows first to avoid FK constraint violations.
+    # Import here to avoid circular imports.
+    try:
+        from app.models.application import Application
+        db.query(Application).filter(Application.application_package_id == package_id).delete()
+    except Exception:
+        pass  # No Application model or no linked rows — safe to continue
+
     db.delete(record)
     db.commit()
     return {"message": f"Application package {package_id} deleted successfully"}

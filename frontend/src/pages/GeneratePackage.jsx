@@ -9,6 +9,7 @@ export default function GeneratePackage() {
   const [profiles, setProfiles] = useState([]);
   const [selectedJobId, setSelectedJobId] = useState("");
   const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [language, setLanguage] = useState("english");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,7 +27,7 @@ export default function GeneratePackage() {
     setError("");
     try {
       const response = await api.post(
-        `/application-package-store/generate/${selectedJobId}/${selectedProfileId}`
+        `/application-package-store/generate/${selectedJobId}/${selectedProfileId}?language=${language}`
       );
       navigate(`/packages/${response.data.id}`);
     } catch (err) {
@@ -73,6 +74,18 @@ export default function GeneratePackage() {
                 #{profile.id} — {profile.full_name}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>CV & Cover Letter Language</label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 7, border: "1.5px solid #e5e7eb", fontSize: 14 }}
+          >
+            <option value="english">English</option>
+            <option value="german">German (Deutsch)</option>
           </select>
         </div>
 

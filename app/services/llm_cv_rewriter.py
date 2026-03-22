@@ -13,20 +13,32 @@ def rewrite_cv_as_recruiter(
     skills: str,
     experience: str,
     projects: str,
+    language: str = "english",
     prompt: str | None = None,
 ) -> str:
     """Rewrite a candidate CV as if you were a senior recruiter screening 200+ applicants.
 
     Uses the LLM to rewrite the candidate's profile into a concise, ATS-friendly CV.
+    Supports 'english' and 'german' as output languages.
 
     Falls back to a simple text-based output if the model key is missing or an error occurs.
     """
+    lang = language.strip().lower()
+    is_german = lang == "german"
+
+    language_instruction = (
+        "Write the entire CV in German (Deutsch). Use professional German business language."
+        if is_german else
+        "Write the entire CV in English. Use professional business English."
+    )
 
     prompt = prompt or settings.LLM_CV_REWRITE_PROMPT
     if not prompt:
         prompt = f"""
 You are a senior technical recruiter in Germany who reviews over 200 applications for the same role.
 Given the job and the candidate profile below, rewrite the candidate's CV so it is concise, highly tailored, and written as if it will be read by a busy hiring manager and an ATS system.
+
+Language instruction: {language_instruction}
 
 Job:
 - Title: {job_title}
@@ -50,6 +62,7 @@ Instructions:
 - Focus on measurable impact and relevant skills.
 - Remove unrelated or generic content.
 - Keep it within 1-2 pages of text.
+- {language_instruction}
 """.strip()
 
     try:
