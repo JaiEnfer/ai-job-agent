@@ -429,7 +429,7 @@ export default function CreateProfile() {
     return blocks.filter(Boolean).map((block) => {
       const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
       // Try to extract date range from first line: "Title at Company (2022-01 – Present)"
-      const dateMatch = lines[0]?.match(/\(?([\d]{4}[-\/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-\/]?\d{0,2}|Present|present)\)?/);
+      const dateMatch = lines[0]?.match(/\(?([\d]{4}[-/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-/]?\d{0,2}|Present|present)\)?/);
       const from = dateMatch?.[1] || "";
       const to   = dateMatch?.[2]?.toLowerCase() === "present" ? "" : (dateMatch?.[2] || "");
       const current = dateMatch?.[2]?.toLowerCase() === "present";
@@ -462,7 +462,7 @@ export default function CreateProfile() {
     return blocks.filter(Boolean).map((block) => {
       const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
       // Pattern: "Degree – Institution (period) | Grade/GPA: X"
-      const dateMatch = lines[0]?.match(/([\d]{4}[-\/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-\/]?\d{0,2}|Present|present)/);
+      const dateMatch = lines[0]?.match(/([\d]{4}[-/]\d{2}|[\d]{4})\s*[–-]\s*([\d]{4}[-/]?\d{0,2}|Present|present)/);
       const from = dateMatch?.[1] || "";
       const to   = dateMatch?.[2]?.toLowerCase() === "present" ? "" : (dateMatch?.[2] || "");
       const current = dateMatch?.[2]?.toLowerCase() === "present";
