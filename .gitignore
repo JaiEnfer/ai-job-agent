@@ -11,4 +11,7 @@ build/
 .pytest_cache/
 playwright-report/
 
+INTERVIEW_QA.md
+PROJECT_DOCUMENTATION.md
+
 AI_Job_Agent_Documentation.docx
